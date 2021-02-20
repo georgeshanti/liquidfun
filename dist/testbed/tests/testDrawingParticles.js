@@ -6,45 +6,72 @@ var e_parameterElasticBarrier = e_parameterBegin | (1 << 3);
 var e_parameterSpringBarrier = e_parameterBegin | (1 << 4);
 var e_parameterRepulsive = e_parameterBegin | (1 << 5);
 
+const visibleHeightAtZDepth = ( depth, camera ) => {
+  // compensate for cameras not positioned at z=0
+  const cameraOffset = camera.position.z;
+  if ( depth < cameraOffset ) depth -= cameraOffset;
+  else depth += cameraOffset;
+
+  // vertical fov in radians
+  const vFOV = camera.fov * Math.PI / 180; 
+
+  // Math.abs to ensure the result is always positive
+  return 2 * Math.tan( vFOV / 2 ) * Math.abs( depth );
+};
+
+const visibleWidthAtZDepth = ( depth, camera ) => {
+  const height = visibleHeightAtZDepth( depth, camera );
+  return height * camera.aspect;
+};
+
+var height;
+var width;
+
 function TestDrawingParticles() {
-  camera.position.y = 2;
-  camera.position.z = 3.2;
+  camera.position.y = 0;
+  camera.position.z = 6;
+
+  height = visibleHeightAtZDepth(6, camera);
+  width = visibleWidthAtZDepth(6, camera);
+
+  console.log("Height:",height, "Width:", width);
   var bd = new liquidfun.b2BodyDef;
   var ground = world.CreateBody(bd);
 
   var shape = new liquidfun.b2PolygonShape;
-  shape.vertices.push(new liquidfun.b2Vec2(-4, -2));
-  shape.vertices.push(new liquidfun.b2Vec2(4, -2));
-  shape.vertices.push(new liquidfun.b2Vec2(4, 0));
-  shape.vertices.push(new liquidfun.b2Vec2(-4, 0));
+  shape.vertices.push(new liquidfun.b2Vec2(-width/4, -height/4));
+  shape.vertices.push(new liquidfun.b2Vec2(width/4, -height/4));
+  shape.vertices.push(new liquidfun.b2Vec2(width/4, (-height/4)-1));
+  shape.vertices.push(new liquidfun.b2Vec2(-width/4, (-height/4)-1));
   ground.CreateFixtureFromShape(shape, 0.0);
 
   shape = new liquidfun.b2PolygonShape;
-  shape.vertices.push(new liquidfun.b2Vec2(-4, -2));
-  shape.vertices.push(new liquidfun.b2Vec2(-2, -2));
-  shape.vertices.push(new liquidfun.b2Vec2(-2, 6));
-  shape.vertices.push(new liquidfun.b2Vec2(-4, 6));
+  shape.vertices.push(new liquidfun.b2Vec2(-width/4, -height/4));
+  shape.vertices.push(new liquidfun.b2Vec2(-width/4, height/4));
+  shape.vertices.push(new liquidfun.b2Vec2((-width/4)-1, height/4));
+  shape.vertices.push(new liquidfun.b2Vec2((-width/4)-1, -height/4));
   ground.CreateFixtureFromShape(shape, 0.0);
 
   shape = new liquidfun.b2PolygonShape;
-  shape.vertices.push(new liquidfun.b2Vec2(2, -2));
-  shape.vertices.push(new liquidfun.b2Vec2(4, -2));
-  shape.vertices.push(new liquidfun.b2Vec2(4, 6));
-  shape.vertices.push(new liquidfun.b2Vec2(2, 6));
+  shape.vertices.push(new liquidfun.b2Vec2(width/4, -height/4));
+  shape.vertices.push(new liquidfun.b2Vec2(width/4, height/4));
+  shape.vertices.push(new liquidfun.b2Vec2((width/4)+1, height/4));
+  shape.vertices.push(new liquidfun.b2Vec2((width/4)+1, -height/4));
   ground.CreateFixtureFromShape(shape, 0.0);
 
   shape = new liquidfun.b2PolygonShape;
-  shape.vertices.push(new liquidfun.b2Vec2(-4, 4));
-  shape.vertices.push(new liquidfun.b2Vec2(4, 4));
-  shape.vertices.push(new liquidfun.b2Vec2(4, 6));
-  shape.vertices.push(new liquidfun.b2Vec2(-4, 6));
+  shape.vertices.push(new liquidfun.b2Vec2(-width/4, height/4));
+  shape.vertices.push(new liquidfun.b2Vec2(width/4, height/4));
+  shape.vertices.push(new liquidfun.b2Vec2(width/4, (height/4)+1));
+  shape.vertices.push(new liquidfun.b2Vec2(-width/4, (height/4)+1));
   ground.CreateFixtureFromShape(shape, 0.0);
 
   this.colorIndex = 0;
   var psd = new liquidfun.b2ParticleSystemDef();
-  psd.radius = 0.05;
+  psd.radius = 0.1;
 
   this.particleSystem = world.CreateParticleSystem(psd);
+  window.part = this.particleSystem;
   this.lastGroup = null;
   this.drawing = false;
 
@@ -77,104 +104,46 @@ TestDrawingParticles.prototype.DetermineParticleParameter = function() {
   return e_parameterMove;
 };
 
-TestDrawingParticles.prototype.Keyboard = function(key) {
-  this.drawing = key != 'X';
-  this.particleFlags = 0;
-  this.groupFlags = 0;
-  switch (key) {
-    case 'E':
-      this.particleFlags = liquidfun.b2_elasticParticle;
-      this.groupFlags = liquidfun.b2_solidParticleGroup;
-      break;
-    case 'P':
-      this.particleFlags = liquidfun.b2_powderParticle;
-      break;
-    case 'R':
-      this.groupFlags = liquidfun.b2_rigidParticleGroup | liquidfun.b2_solidParticleGroup;
-      break;
-    case 'S':
-      this.particleFlags = liquidfun.b2_springParticle;
-      this.groupFlags = liquidfun.b2_solidParticleGroup;
-      break;
-    case 'T':
-      this.particleFlags = liquidfun.b2_tensileParticle;
-      break;
-    case 'V':
-      this.particleFlags = liquidfun.b2_viscousParticle;
-      break;
-    case 'W':
-      this.particleFlags = liquidfun.b2_wallParticle;
-      this.groupFlags = liquidfun.b2_solidParticleGroup;
-      break;
-    case 'B':
-      this.particleFlags = liquidfun.b2_barrierParticle | liquidfun.b2_wallParticle;
-      break;
-    case 'H':
-      this.particleFlags = liquidfun.b2_barrierParticle;
-      this.groupFlags = liquidfun.b2_rigidParticleGroup;
-      break;
-    case 'N':
-      this.particleFlags = liquidfun.b2_barrierParticle | liquidfun.b2_elasticParticle;
-      this.groupFlags = liquidfun.b2_solidParticleGroup;
-      break;
-    case 'M':
-      this.particleFlags = liquidfun.b2_barrierParticle | liquidfun.b2_springParticle;
-      this.groupFlags = liquidfun.b2_solidParticleGroup;
-      break;
-    case 'F':
-      this.particleFlags = liquidfun.b2_wallParticle | liquidfun.b2_repulsiveParticle;
-      break;
-    case 'C':
-      this.particleFlags = liquidfun.b2_colorMixingParticle;
-      break;
-    case 'Z':
-      this.particleFlags = liquidfun.b2_zombieParticle;
-      break;
-    default:
-      break;
+var interval = null;
+
+TestDrawingParticles.prototype.insert = function() {
+  _this = this;
+  if(interval!=null){
+    clearInterval(interval);
+    interval=null;
+    return;
   }
-};
-
-TestDrawingParticles.prototype.MouseDown = function(p) {
-  this.drawing = true;
-};
-
-TestDrawingParticles.prototype.MouseMove = function(p) {
-  if (this.drawing) {
+  interval = setInterval(()=>{
+    var p = {x: RandomFloat(-width/4, width/4), y: RandomFloat(-height/4, height/4)}
     var shape = new liquidfun.b2CircleShape;
     shape.position = p;
     shape.radius = 0.2;
     var xf = new liquidfun.b2Transform;
     xf.SetIdentity();
-
-    this.particleSystem.DestroyParticlesInShape(shape, xf);
-
+  
+    _this.particleSystem.DestroyParticlesInShape(shape, xf);
+  
     var joinGroup =
-      this.lastGroup && this.groupFlags === this.lastGroup.GetGroupFlags();
+    _this.lastGroup && _this.groupFlags === _this.lastGroup.GetGroupFlags();
     if (!joinGroup) {
-      this.colorIndex = (this.colorIndex + 1) % particleColors.length;
+      _this.colorIndex = (_this.colorIndex + 1) % particleColors.length;
     }
-    var pd = new liquidfun.b2ParticleGroupDef;
+    var pd = new liquidfun.b2ParticleGroupDef();
     pd.shape = shape;
-    pd.flags = this.particleFlags;
-    if ((this.particleFlags &
+    pd.flags = _this.particleFlags;
+    if ((_this.particleFlags &
       (liquidfun.b2_wallParticle | liquidfun.b2_springParticle | liquidfun.b2_elasticParticle)) ||
-      (this.particleFlags === (liquidfun.b2_wallParticle | liquidfun.b2_barrierParticle))) {
+      (_this.particleFlags === (liquidfun.b2_wallParticle | liquidfun.b2_barrierParticle))) {
       pd.flags |= liquidfun.b2_reactiveParticle;
     }
-    pd.groupFlags = this.groupFlags;
-    pd.color = particleColors[this.colorIndex];
-    if (this.lastGroup !== null) {
-      pd.group = this.lastGroup;
+    pd.groupFlags = _this.groupFlags;
+    pd.color = new liquidfun.b2ParticleColor(0x00, 0xba, 0xa3, 0xff);
+    if (_this.lastGroup !== null) {
+      pd.group = _this.lastGroup;
     }
-    this.lastGroup = this.particleSystem.CreateParticleGroup(pd);
-    this.mouseTracing = false;
-  }
-};
-
-TestDrawingParticles.prototype.MouseUp = function(p) {
-  this.drawing = false;
-  this.lastGroup = null;
+    _this.lastGroup = _this.particleSystem.CreateParticleGroup(pd);
+    _this.mouseTracing = false;
+  },0);
 };
 
 TestDrawingParticles.prototype.ParticleGroupDestroyed = function(group) {

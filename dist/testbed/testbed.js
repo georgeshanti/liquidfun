@@ -32,10 +32,11 @@ var windowHeight = window.innerHeight;
 function initTestbed() {
   camera = new THREE.PerspectiveCamera(70
     , windowWidth / windowHeight
-    , 1, 1000);
+    , 0.1, 1000);
   threeRenderer = new THREE.WebGLRenderer();
-  threeRenderer.setClearColor(0xEEEEEE);
+  threeRenderer.setClearColor(0x171717);
   threeRenderer.setSize(windowWidth, windowHeight);
+  threeRenderer.devicePixelRatio =window.devicePixelRatio;
 
   camera.position.x = 0;
   camera.position.y = 0;
@@ -63,73 +64,15 @@ function testSwitch(testName) {
 }
 
 function Testbed(obj) {
-  // Init world
-  //GenerateOffsets();
-  //Init
-  var that = this;
-  document.addEventListener('keypress', function(event) {
-    if (test.Keyboard !== undefined) {
-      test.Keyboard(String.fromCharCode(event.which) );
-    }
-  });
-  document.addEventListener('keyup', function(event) {
-    if (test.KeyboardUp !== undefined) {
-      test.KeyboardUp(String.fromCharCode(event.which) );
-    }
-  });
 
-  document.addEventListener('mousedown', function(event) {
-    var p = getMouseCoords(event);
-    var aabb = new liquidfun.b2AABB;
-    var d = new liquidfun.b2Vec2;
-
-    d.Set(0.01, 0.01);
-    liquidfun.b2Vec2.Sub(aabb.lowerBound, p, d);
-    liquidfun.b2Vec2.Add(aabb.upperBound, p, d);
-
-    var queryCallback = new QueryCallback(p);
-    world.QueryAABB(queryCallback, aabb);
-
-    if (queryCallback.fixture) {
-      var body = queryCallback.fixture.body;
-      var md = new liquidfun.b2MouseJointDef;
-      md.bodyA = g_groundBody;
-      md.bodyB = body;
-      md.target = p;
-      md.maxForce = 1000 * body.GetMass();
-      that.mouseJoint = world.CreateJoint(md);
-      body.SetAwake(true);
-    }
-    if (test.MouseDown !== undefined) {
-      test.MouseDown(p);
-    }
-
-  });
-
-  document.addEventListener('mousemove', function(event) {
-    var p = getMouseCoords(event);
-    if (that.mouseJoint) {
-      that.mouseJoint.SetTarget(p);
-    }
-    if (test.MouseMove !== undefined) {
-      test.MouseMove(p);
-    }
-  });
-
-  document.addEventListener('mouseup', function(event) {
-    if (that.mouseJoint) {
-      world.DestroyJoint(that.mouseJoint);
-      that.mouseJoint = null;
-    }
-    if (test.MouseUp !== undefined) {
-      test.MouseUp(getMouseCoords(event));
-    }
+  document.addEventListener('click', function(event) {
+      test.insert();
   });
 
 
   window.addEventListener( 'resize', onWindowResize, false );
 
-  testSwitch("TestWaveMachine");
+  testSwitch("TestDrawingParticles");
 
   render();
 }
